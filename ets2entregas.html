@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela de Informações de Entrega</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #333;
+            color: white;
+        }
+        td {
+            text-align: center;
+            white-space: nowrap;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        .total-cell {
+            text-align: right;
+            padding-right: 25px;
+        }
+        input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <table id="infoTable">
+        <thead>
+            <tr>
+                <th>De</th>
+                <th>Para</th>
+                <th>Carga</th>
+                <th>Preço</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr>
+                <td><input type="text" placeholder="Local de origem" oninput="checkRowComplete(this)"></td>
+                <td><input type="text" placeholder="Local de destino" oninput="checkRowComplete(this)"></td>
+                <td><input type="text" placeholder="Descrição da carga" oninput="checkRowComplete(this)"></td>
+                <td><input type="number" placeholder="Preço" class="price-input" oninput="checkRowComplete(this)"></td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="3">Total</td>
+                <td class="total-cell" id="totalAmount">R$ 0,00</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            loadTableData();
+        });
+
+        function calculateTotal() {
+            const inputs = document.querySelectorAll('.price-input');
+            let total = 0;
+            
+            inputs.forEach(input => {
+                const value = parseFloat(input.value.replace(',', '.')) || 0;
+                total += value;
+            });
+            
+            document.getElementById('totalAmount').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            saveTableData();
+        }
+
+        function checkRowComplete(element) {
+            const row = element.parentElement.parentElement;
+            const inputs = row.querySelectorAll('input');
+            const allFilled = Array.from(inputs).every(input => input.value.trim() !== '');
+            
+            if (allFilled) {
+                addRow();
+            }
+            calculateTotal();
+        }
+
+        function addRow() {
+            const tableBody = document.getElementById('tableBody');
+            const newRow = document.createElement('tr');
+
+            newRow.innerHTML = `
+                <td><input type="text" placeholder="Local de origem" oninput="checkRowComplete(this)"></td>
+                <td><input type="text" placeholder="Local de destino" oninput="checkRowComplete(this)"></td>
+                <td><input type="text" placeholder="Descrição da carga" oninput="checkRowComplete(this)"></td>
+                <td><input type="number" placeholder="Preço" class="price-input" oninput="checkRowComplete(this)"></td>
+            `;
+
+            tableBody.appendChild(newRow);
+            calculateTotal();
+        }
+
+        function adjustColumnWidths() {
+            const table = document.getElementById('infoTable');
+            const cols = table.querySelectorAll('col');
+
+            if (cols.length === 0) {
+                const colgroup = document.createElement('colgroup');
+                table.querySelector('thead tr').childNodes.forEach((_, index) => {
+                    const col = document.createElement('col');
+                    colgroup.appendChild(col);
+                });
+                table.querySelector('thead').insertBefore(colgroup, table.querySelector('tbody'));
+            }
+
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach((header, index) => {
+                let maxWidth = header.offsetWidth;
+                table.querySelectorAll(`tbody td:nth-child(${index + 1})`).forEach(cell => {
+                    maxWidth = Math.max(maxWidth, cell.scrollWidth);
+                });
+                table.querySelectorAll('col')[index].style.width = `${maxWidth}px`;
+            });
+        }
+
+        function saveTableData() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            const data = Array.from(rows).map(row => {
+                const inputs = row.querySelectorAll('input');
+                return Array.from(inputs).map(input => input.value);
+            });
+            localStorage.setItem('tableData', JSON.stringify(data));
+        }
+
+        function loadTableData() {
+            const data = JSON.parse(localStorage.getItem('tableData') || '[]');
+            const tableBody = document.getElementById('tableBody');
+
+            data.forEach(rowData => {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td><input type="text" value="${rowData[0] || ''}" oninput="checkRowComplete(this)"></td>
+                    <td><input type="text" value="${rowData[1] || ''}" oninput="checkRowComplete(this)"></td>
+                    <td><input type="text" value="${rowData[2] || ''}" oninput="checkRowComplete(this)"></td>
+                    <td><input type="number" value="${rowData[3] || ''}" class="price-input" oninput="checkRowComplete(this)"></td>
+                `;
+                tableBody.appendChild(newRow);
+            });
+
+            calculateTotal();
+            adjustColumnWidths();
+        }
+    </script>
+
+</body>
+</html>
